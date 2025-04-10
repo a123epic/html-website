@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Security</title>
+  <style>
+    #secureContent {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div id="loginForm">
+    <h2>Login to Access the Site</h2>
+    <form onsubmit="return validateLogin()">
+      <label for="firstName">First Name:</label>
+      <input type="text" id="firstName" required><br><br>
+
+      <label for="lastName">Last Name:</label>
+      <input type="text" id="lastName" required><br><br>
+
+      <label for="password">Password:</label>
+      <input type="password" id="password" required><br><br>
+
+      <input type="submit" value="Login">
+    </form>
+  </div>
+
+  <div id="secureContent">
+    <h2>Welcome to My Site!</h2>
+    <p>This is the protected content only accessible after login.</p>
+  </div>
+
+  <script>
+    function validateLogin() {
+      const password = document.getElementById("password").value;
+      const correctPassword = "whoisa123"
+
+      if (password === correctPassword) {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("secureContent").style.display = "block";
+        return false
+      } else {
+        alert("Incorrect password. Try again.");
+        return false;
+      }
+    }
+  </script>
+</body>
+</html>
