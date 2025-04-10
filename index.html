@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,28 +6,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Home - My Portfolio</title>
     <link rel="stylesheet" href="styles.css">
+    <style>
+        #portfolioContent {
+            display: none;
+        }
+        body {
+            font-family: Arial, sans-serif;
+        }
+        .login-container {
+            margin-top: 100px;
+            text-align: center;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Welcome to My Portfolio</h1>
-        <p> Hi i'm [REDACTED] and this is my personal website.</p>
-        <nav>
-            <ul>
-                <li><a href="index.html">Home</a></li>
-                <li><a href="about.html">About</a></li>
-                <li><a href="project.html">Projects</a></li>
-                <li><a href="contact.html">Contact</a></li>
-                <li><a href="Study.html">Study Guide</a></li>
-                <li> <a href="https://cloud-7.edupage.org/cloud?z%3AFBCKqw9fe7hNKFQnlSzPqNPVKUm4%2FAeds3SjlnZ%2BkRhvqaJOWfSE4sadf1Had%2Bp4YaFHgc6UmHrLSG9yCiS1mg%3D%3D">Study Guide Business</a></li>
-                <li> <a href="https://cloud-a.edupage.org/cloud?z%3AuohvXjGkmP4rK5Xmhvvajl3qqgsaZ7utz9VkbUtcc49fsEEAGRY7bsGEsJC9Og0h">Click here</a></li>
-            </ul>
-        </nav>
-    </header>
 
-    <section>
-        <h2>Welcome</h2>
-        <p>Explore my website using the navigation links above.</p>
-        <a href="about.html">Learn more about me</a>
-    </section>
+    
+    <div id="loginForm" class="login-container">
+        <h2>Login to Access the Portfolio</h2>
+        <form onsubmit="return validateLogin()">
+            <input type="text" id="firstName" placeholder="First Name" required><br><br>
+            <input type="text" id="lastName" placeholder="Last Name" required><br><br>
+            <input type="password" id="password" placeholder="Password" required><br><br>
+            <input type="submit" value="Login">
+        </form>
+    </div>
+
+    
+    <div id="portfolioContent">
+        <header>
+            <h1>Welcome to My Portfolio</h1>
+            <p>Hi I'm [REDACTED] and this is my personal website.</p>
+            <nav>
+                <ul>
+                    <li><a href="index.html">Home</a></li>
+                    <li><a href="about.html">About</a></li>
+                    <li><a href="project.html">Projects</a></li>
+                    <li><a href="contact.html">Contact</a></li>
+                    <li><a href="Study.html">Study Guide</a></li>
+                    <li><a href="https://cloud-7.edupage.org/cloud?z%3AFBCKqw9fe7hNKFQnlSzPqNPVKUm4%2FAeds3SjlnZ%2BkRhvqaJOWfSE4sadf1Had%2Bp4YaFHgc6UmHrLSG9yCiS1mg%3D%3D">Study Guide Business</a></li>
+                    <li><a href="https://cloud-a.edupage.org/cloud?z%3AuohvXjGkmP4rK5Xmhvvajl3qqgsaZ7utz9VkbUtcc49fsEEAGRY7bsGEsJC9Og0h">Click here</a></li>
+                </ul>
+            </nav>
+        </header>
+
+        <section>
+            <h2>Welcome</h2>
+            <p>Explore my website using the navigation links above.</p>
+            <a href="about.html">Learn more about me</a>
+        </section>
+    </div>
+
+    <script>
+        function validateLogin() {
+            const password = document.getElementById("password").value;
+            const correctPassword = "whoisa123";
+
+            if (password === correctPassword) {
+                document.getElementById("loginForm").style.display = "none";
+                document.getElementById("portfolioContent").style.display = "block";
+                return false;
+            } else {
+                alert("Incorrect password. Try again.");
+                return false;
+            }
+        }
+    </script>
+
 </body>
 </html>
