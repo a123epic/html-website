@@ -17,40 +17,14 @@
             text-align: center;
         }
     </style>
-    <!-- Firebase SDK for v11.x -->
-    <script type="module">
-        // Import the necessary Firebase functions
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
-
-        // Your Firebase configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyB4wIekbzTV1n25cbrQC1ETulaOd6X9QUI",
-            authDomain: "a123-epic.firebaseapp.com",
-            projectId: "a123-epic",
-            storageBucket: "a123-epic.firebasestorage.app",
-            messagingSenderId: "107994195625",
-            appId: "1:107994195625:web:c37f1126aba96b2d652bb8"
-        };
-
-        // Initialize Firebase
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-    </script>
 </head>
 <body>
-
-    <!-- Login Form -->
+    
     <div id="loginForm" class="login-container">
         <h2>Login to Access the Portfolio</h2>
-        <form id="loginForm" onsubmit="return validateLogin(event)">
-            <input type="email" id="email" placeholder="Email" required><br><br>
-            <input type="password" id="password" placeholder="Password" required><br><br>
-            <input type="submit" value="Login">
-        </form>
+        <button id="anonymousLoginBtn">Login Anonymously</button>
     </div>
 
-    <!-- Portfolio Content -->
     <div id="portfolioContent">
         <header>
             <h1>Welcome to My Portfolio</h1>
@@ -76,29 +50,38 @@
     </div>
 
     <script type="module">
-        // Validate the login using Firebase Authentication
-        function validateLogin(event) {
-            event.preventDefault(); // Prevent default form submission
+        // Import Firebase SDK
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+        
+        // Your Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyB4wIekbzTV1n25cbrQC1ETulaOd6X9QUI",
+            authDomain: "a123-epic.firebaseapp.com",
+            projectId: "a123-epic",
+            storageBucket: "a123-epic.firebasestorage.app",
+            messagingSenderId: "107994195625",
+            appId: "1:107994195625:web:c37f1126aba96b2d652bb8"
+        };
+        
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth();
 
-            const email = document.getElementById("email").value;
-            const password = document.getElementById("password").value;
-
-            // Use Firebase Authentication to sign in the user
-            signInWithEmailAndPassword(auth, email, password)
-                .then((userCredential) => {
-                    // User signed in successfully
-                    const user = userCredential.user;
-                    console.log("User signed in:", user);
+        // Handle anonymous login
+        document.getElementById("anonymousLoginBtn").addEventListener("click", () => {
+            signInAnonymously(auth)
+                .then(() => {
+                    // Successful anonymous login
                     document.getElementById("loginForm").style.display = "none";
                     document.getElementById("portfolioContent").style.display = "block";
                 })
                 .catch((error) => {
-                    // Handle errors
-                    const errorCode = error.code;
-                    const errorMessage = error.message;
-                    alert("Error: " + errorMessage);
+                    // Handle login errors
+                    console.error("Error during anonymous login:", error.message);
+                    alert("An error occurred during login. Please try again.");
                 });
-        }
+        });
     </script>
 
 </body>
