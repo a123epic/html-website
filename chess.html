@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Chess</title>
+    <link rel="stylesheet" href="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        #game-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        #board-container {
+            flex: 1;
+            min-width: 400px;
+        }
+        #board {
+            margin: 0 auto;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        #panel {
+            flex: 1;
+            min-width: 300px;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        #status {
+            font-weight: bold;
+            font-size: 1.2em;
+            margin: 10px 0;
+            min-height: 1.5em;
+            color: #333;
+        }
+        #moves {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin: 10px 0;
+            background: #fafafa;
+        }
+        .move-entry {
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+        }
+        .move-entry:nth-child(odd) {
+            background: #f0f0f0;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin: 15px 0;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 8px 16px;
+            background: #779556;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #5a7240;
+        }
+        #promotion-dialog {
+            display: none;
+            position: absolute;
+            background: white;
+            border: 1px solid #333;
+            z-index: 100;
+            box-shadow: 0 0 20px rgba(0,0,0,0.3);
+        }
+        .promotion-option {
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            cursor: pointer;
+            background: #f5f5f5;
+        }
+        .promotion-option:hover {
+            background: #ddd;
+        }
+        .ai-thinking {
+            display: none;
+            margin: 10px 0;
+            color: #666;
+        }
+        @media (max-width: 768px) {
+            #game-container {
+                flex-direction: column;
+            }
+            #board {
+                width: 100%;
+                max-width: 400px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Chess</h1>
+    <div id="game-container">
+        <div id="board-container">
+            <div id="board"></div>
+            <div id="status"></div>
+            <div class="controls">
+                <button id="flipBtn"><i class="fas fa-sync-alt"></i> Flip Board</button>
+                <button id="resetBtn"><i class="fas fa-redo"></i> New Game</button>
+                <button id="aiBtn"><i class="fas fa-robot"></i> Play vs AI</button>
+            </div>
+            <div id="ai-thinking" class="ai-thinking">
+                <i class="fas fa-cog fa-spin"></i> AI is thinking...
+            </div>
+        </div>
+        <div id="panel">
+            <h2>Move History</h2>
+            <div id="moves"></div>
+            <div class="controls">
+                <button id="undoBtn"><i class="fas fa-undo"></i> Undo Move</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="promotion-dialog"></div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://unpkg.com/@chrisoakman/chessboardjs@1.0.0/dist/chessboard-1.0.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.wasm.js"></script>
+
+    <script>
+        // Game state
+        const game = new Chess();
+        let board;
+        let pendingPromotion = null;
+        let aiEnabled = false;
+        const stockfish = new Worker('https://cdnjs.cloudflare.com/ajax/libs/stockfish.js/10.0.2/stockfish.js');
+        stockfish.onmessage = handleStockfishMessage;
+
+        // Initialize board
+        function initBoard() {
+            board = Chessboard('board', {
+                draggable: true,
+                position: 'start',
+                pieceTheme: 'https://chessboardjs.com/img/chesspieces/wikipedia/{piece}.png',
+                onDragStart: onDragStart,
+                onDrop: onDrop,
+                onSnapEnd: onSnapEnd,
+                onTouchStart: onTouchStart,
+                onTouchEnd: onTouchEnd
+            });
+        }
+
+        // Update game status display
+        function updateStatus() {
+            let status = '';
+            
+            if (game.isGameOver()) {
+                if (game.isCheckmate()) {
+                    status = `Checkmate! ${game.turn() === 'w' ? 'Black' : 'White'} wins`;
+                } else if (game.isDraw()) {
+                    status = 'Game drawn by ' + (
+                        game.isStalemate() ? 'stalemate' :
+                        game.isThreefoldRepetition() ? 'threefold repetition' :
+                        game.isInsufficientMaterial() ? 'insufficient material' :
+                        '50-move rule'
+                    );
+                }
+            } else {
+                status = `${game.turn() === 'w' ? 'White' : 'Black'} to move`;
+                if (game.isCheck()) {
+                    status += ' (check)';
+                }
+            }
+            
+            document.getElementById('status').textContent = status;
+            updateMoveHistory();
+            
+            // If AI's turn and AI is enabled
+            if (aiEnabled && !game.isGameOver() && game.turn() === 'b') {
+                document.getElementById('ai-thinking').style.display = 'block';
+                stockfish.postMessage('position fen ' + game.fen());
+                stockfish.postMessage('go depth 15');
+            } else {
+                document.getElementById('ai-thinking').style.display = 'none';
+            }
+        }
+
+        // Handle drag start
+        function onDragStart(source, piece) {
+            if (game.isGameOver()) return false;
+            if ((game.turn() === 'w' && piece.search(/^b/) !== -1) ||
+                (game.turn() === 'b' && piece.search(/^w/) !== -1)) {
+                return false;
+            }
+            if (aiEnabled && game.turn() === 'b') return false;
+        }
+
+        // Handle piece drop
+        function onDrop(source, target) {
+            // Check for promotion
+            const piece = game.get(source);
+            if (piece && piece.type === 'p' && 
+                ((piece.color === 'w' && target[1] === '8') || 
+                 (piece.color === 'b' && target[1] === '1'))) {
+                pendingPromotion = { from: source, to: target };
+                showPromotionDialog(piece.color);
+                return 'snapback';
+            }
+            
+            // Regular move
+            return tryMove(source, target);
+        }
+
+        // Try to make a move
+        function tryMove(source, target, promotion = 'q') {
+            const move = game.move({
+                from: source,
+                to: target,
+                promotion: promotion
+            });
+
+            if (move === null) return 'snapback';
+            
+            updateStatus();
+            return true;
+        }
+
+        // Show promotion dialog
+        function showPromotionDialog(color) {
+            const dialog = document.getElementById('promotion-dialog');
+            dialog.innerHTML = '';
+            dialog.style.display = 'flex';
+            dialog.style.flexDirection = 'column';
+            
+            const pieces = ['q', 'r', 'b', 'n'];
+            const symbols = {
+                'q': color === 'w' ? '♕' : '♛',
+                'r': color === 'w' ? '♖' : '♜',
+                'b': color === 'w' ? '♗' : '♝',
+                'n': color === 'w' ? '♘' : '♞'
+            };
+            
+            pieces.forEach(piece => {
+                const option = document.createElement('div');
+                option.className = 'promotion-option';
+                option.textContent = symbols[piece];
+                option.onclick = () => {
+                    tryMove(pendingPromotion.from, pendingPromotion.to, piece);
+                    dialog.style.display = 'none';
+                    board.position(game.fen());
+                };
+                dialog.appendChild(option);
+            });
+            
+            // Position dialog near the promotion square
+            const square = document.querySelector(`[data-square="${pendingPromotion.to}"]`);
+            const rect = square.getBoundingClientRect();
+            dialog.style.top = `${rect.top}px`;
+            dialog.style.left = `${rect.left}px`;
+        }
+
+        // Update move history
+        function updateMoveHistory() {
+            const movesDiv = document.getElementById('moves');
+            movesDiv.innerHTML = '';
+            
+            const history = game.history({ verbose: true });
+            for (let i = 0; i < history.length; i += 2) {
+                const moveEntry = document.createElement('div');
+                moveEntry.className = 'move-entry';
+                
+                const whiteMove = history[i];
+                moveEntry.innerHTML = `${i/2 + 1}. ${whiteMove.san}`;
+                
+                if (i + 1 < history.length) {
+                    const blackMove = history[i + 1];
+                    moveEntry.innerHTML += ` &nbsp; ${blackMove.san}`;
+                }
+                
+                movesDiv.appendChild(moveEntry);
+            }
+            movesDiv.scrollTop = movesDiv.scrollHeight;
+        }
+
+        // Handle AI move
+        function handleStockfishMessage(event) {
+            if (event.data.startsWith('bestmove')) {
+                const bestmove = event.data.split(' ')[1];
+                if (bestmove && bestmove !== '(none)') {
+                    setTimeout(() => {
+                        const move = game.move(bestmove);
+                        board.position(game.fen());
+                        updateStatus();
+                    }, 500);
+                }
+            }
+        }
+
+        // Touch support
+        function onTouchStart(source, piece) {
+            onDragStart(source, piece);
+        }
+
+        function onTouchEnd() {
+            // Touch devices use the same drop logic
+        }
+
+        // UI Controls
+        document.getElementById('flipBtn').addEventListener('click', () => {
+            board.flip();
+        });
+
+        document.getElementById('resetBtn').addEventListener('click', () => {
+            game.reset();
+            board.start();
+            updateStatus();
+        });
+
+        document.getElementById('aiBtn').addEventListener('click', function() {
+            aiEnabled = !aiEnabled;
+            this.innerHTML = aiEnabled ? 
+                '<i class="fas fa-user"></i> Play vs Human' : 
+                '<i class="fas fa-robot"></i> Play vs AI';
+            if (aiEnabled && game.turn() === 'b') {
+                updateStatus(); // Trigger AI move if it's black's turn
+            }
+        });
+
+        document.getElementById('undoBtn').addEventListener('click', () => {
+            const moves = game.history();
+            if (moves.length > 0) {
+                game.undo();
+                board.position(game.fen());
+                updateStatus();
+            }
+        });
+
+        // Initialize
+        initBoard();
+        updateStatus();
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            board.resize();
+        });
+    </script>
+</body>
+</html>
